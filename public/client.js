@@ -213,6 +213,7 @@
 
   var onChannelOpened = function() {
     console.log('Channel opened');
+    socket.emit('room', roomKey);
     channelReady = true;
     startWhenReady();
   }
@@ -291,6 +292,7 @@
   }
 
   var handlePeerConnectionAnswer = function(message) {
+    console.log('Received answer from peer.');
     if (stereo) message.sdp = addStereo(message.sdp);
     pc.setRemoteDescription(new RTCSessionDescription(message));
   }
@@ -393,7 +395,6 @@
   // Section 8: Utilities
 
   var sendMessage = function(message) {
-    // var msgString = JSON.stringify(message);
     console.log('Sending client to server message of type: ' + message.type);
     socket.emit('message', message);
   }

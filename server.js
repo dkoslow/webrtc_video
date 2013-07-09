@@ -17,7 +17,7 @@ app.get('/', function (req, res) {
   res.render('index');
 })
 
-var room;
+var initiated;
 
 app.get('/handshake', function (req, res) {
   var user_id;
@@ -69,16 +69,12 @@ app.get('/handshake', function (req, res) {
   
   user_id = createUserId();
   room_key = createRoomKey();
-  if (!room) {
-    room = {
-      'key': room_key,
-      'users': []
-    };
+  if (!initiated) {
+    initiated = true;
     initiator = true;
   } else {
     initiator = false;
   }
-  room.users.push(user_id);
 
   turn_url = createTurnURL(user_id);
   pc_config = createPcConfig();
@@ -102,12 +98,56 @@ app.get('/handshake', function (req, res) {
 })
 
 io.sockets.on('connection', function(socket) {
-  socket.on('message', function (msg) {
-    console.log('I received a private message saying: ' + msg);
-    socket.broadcast.emit('message', msg);
+  var otherUser;
+
+  socket.on('room', function(room) {
+    console.log(socket.id + " asked to join room: " + room);
+    socket.join(room);
   });
 
+  socket.on('message', function (msg) {
+    console.log('Server received a message of type: ' + msg.type);
+    otherUser = otherUser || setOtherUser();
+    io.sockets.socket(otherUser).emit("message", msg);
+  });
+
+  var setOtherUser = function() {
+    var room,
+        roomNumber,
+        otherUserId,
+        firstClientId,
+        secondClientId,
+        clientArray;
+
+    room = io.sockets.manager.roomClients[socket.id];
+    for (var key in room) {
+      if (key.length > 0) {
+        roomNumber = key.substr(1);
+      }
+    }
+
+    clientArray = io.sockets.clients(roomNumber);
+    if (clientArray.length == 2) {
+      firstClientId = clientArray[0].id;
+      secondClientId = clientArray[1].id;
+      console.log("First client id: " + firstClientId);
+      console.log("Second client id: " + secondClientId);
+      if (socket.id === firstClientId) {
+        otherUserId = secondClientId;
+      } else if (socket.id === secondClientId ) {
+        otherUserId = firstClientId;
+      } else {
+        console.log("Socket id does not match either client");
+      }
+
+      return otherUserId;
+    } else {
+      console.log("Message received in room with only one user.");
+      return;
+    }
+  }
+
   socket.on('disconnect', function () {
-    io.sockets.emit('user disconnected');
+    io.sockets.emit('User disconnected');
   });
 })
