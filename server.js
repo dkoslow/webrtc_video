@@ -20,15 +20,15 @@ app.get('/', function (req, res) {
 var initiated;
 
 app.get('/handshake', function (req, res) {
-  var user_id;
-  var room_key;
-  var initiator;
-  var turn_url;
-  var pc_config;
-  var pc_constraints;
-  var media_constraints;
-  var stereo;
-  var client_data;
+  var user_id,
+      room_key,
+      initiator,
+      turn_url,
+      pc_config,
+      pc_constraints,
+      media_constraints,
+      stereo,
+      client_data;
 
   var createUserId = function() {
     // Generates a random 8 digit number
@@ -57,7 +57,7 @@ app.get('/handshake', function (req, res) {
 
   // This no longer seems to do anything, need to refactor later
   var createPcConstraints = function() {
-    var constraints = { 'optional': [] }
+    var constraints = { 'optional': [] };
     return constraints; 
   }
 
@@ -83,7 +83,6 @@ app.get('/handshake', function (req, res) {
   stereo = false; // Revisit this later to see what it does
 
   client_data = {
-    'token': '1111111',
     'user_id': user_id,
     'room_key': room_key,
     'initiator': initiator,
@@ -108,42 +107,49 @@ io.sockets.on('connection', function(socket) {
   socket.on('message', function (msg) {
     console.log('Server received a message of type: ' + msg.type);
     otherUser = otherUser || setOtherUser();
+
+    // Send message to other user, if setOtherUser returns "null"
+    // socket.io seems to be able to handle it gracefully
     io.sockets.socket(otherUser).emit("message", msg);
   });
 
   var setOtherUser = function() {
     var room,
         roomNumber,
-        otherUserId,
-        firstClientId,
-        secondClientId,
-        clientArray;
+        otherUserId;
 
     room = io.sockets.manager.roomClients[socket.id];
+    roomNumber = findRoomNumber(room);
+    otherUserId = otherUserInRoom(roomNumber);
+    return otherUserId;
+  }
+
+  var findRoomNumber = function(room) {
     for (var key in room) {
       if (key.length > 0) {
-        roomNumber = key.substr(1);
+        return key.substr(1);
       }
     }
+  }
 
-    clientArray = io.sockets.clients(roomNumber);
+  var otherUserInRoom = function(roomNumber) {
+    var clientArray = io.sockets.clients(roomNumber),
+        firstClientId,
+        secondClientId;
+
     if (clientArray.length == 2) {
       firstClientId = clientArray[0].id;
       secondClientId = clientArray[1].id;
-      console.log("First client id: " + firstClientId);
-      console.log("Second client id: " + secondClientId);
+
       if (socket.id === firstClientId) {
-        otherUserId = secondClientId;
+        return secondClientId;
       } else if (socket.id === secondClientId ) {
-        otherUserId = firstClientId;
+        return firstClientId;
       } else {
         console.log("Socket id does not match either client");
       }
-
-      return otherUserId;
     } else {
       console.log("Message received in room with only one user.");
-      return;
     }
   }
 
