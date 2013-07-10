@@ -34,8 +34,7 @@
       xmlhttp;
 
   // Application initialization variables (from server)
-  var channelToken,
-      userId,
+  var userId,
       roomKey,
       initiator,
       pcConfig,
@@ -54,7 +53,6 @@
       success: function(data) {
         console.log('Received intialization data from server: ' + data);
 
-        channelToken = data['token'];
         userId = data['user_id'];
         roomKey = data['room_key'];
         initiator = data['initiator'];
