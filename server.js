@@ -23,7 +23,6 @@ app.get('/handshake', function (req, res) {
   var user_id,
       room_key,
       initiator,
-      turn_url,
       pc_config,
       pc_constraints,
       media_constraints,
@@ -40,12 +39,6 @@ app.get('/handshake', function (req, res) {
     // Will need to make dynamic once app is ready for more than 2 users
     var key = '12345678';
     return key;
-  }
-
-  var createTurnURL = function(user_id) {
-    var baseURL = 'https://computeengineondemand.appspot.com/';
-    var turnURL = baseURL + 'turn?' + 'username=' + user_id + '&key=4080218913';
-    return turnURL;
   }
   
   var createPcConfig = function() {
@@ -76,7 +69,6 @@ app.get('/handshake', function (req, res) {
     initiator = false;
   }
 
-  turn_url = createTurnURL(user_id);
   pc_config = createPcConfig();
   pc_constraints = createPcConstraints();
   media_constraints = createMediaConstraints();
@@ -89,7 +81,6 @@ app.get('/handshake', function (req, res) {
     'pc_config': pc_config,
     'pc_constraints': pc_constraints,
     'media_constraints': media_constraints,
-    'turn_url': turn_url,
     'stereo': stereo
   }
 

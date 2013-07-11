@@ -25,7 +25,6 @@
   // Groundwork function completion variables
   var readyToConnect = false,
       localStream,
-      turnDone,
       channelReady;
 
   // Connection and messaging variables
@@ -41,7 +40,6 @@
       pcConstraints,
       offerConstraints,
       mediaConstraints,
-      turnUrl,
       stereo;
 
   var initialize = function(){
@@ -59,7 +57,6 @@
         pcConfig = data['pc_config'];
         pcConstraints = data['pc_constraints'];
         mediaConstraints = data['media_constraints'];
-        turnUrl = data['turn_url'];
         stereo = data['stereo'];
 
         callGroundworkFunctions();
@@ -73,7 +70,6 @@
 
   var callGroundworkFunctions = function() {
     activateVideo();
-    sendTURNRequest();
     openChannel();
     console.log('Groundwork functions have been called');
   }
@@ -81,7 +77,7 @@
   // Called by all three Groundwork Function branches.
   // Makes sure all three branches have finished before executing.
   var startWhenReady = function() {
-    if (!readyToConnect && localStream && turnDone && channelReady) {
+    if (!readyToConnect && localStream && channelReady) {
       readyToConnect = true;
 
       tryCreateConnection();
@@ -134,57 +130,8 @@
   }
 
 
-  // Section 3: Use STUN/TURN servers to identify available sockets
+  // Section 3: Send ice candidates that have been received by the ice agent to peer
 
-  var sendTURNRequest = function() {
-    console.log('Sending TURN server request.');
-    $.ajax({
-      url: turnUrl,
-      success: onTURNSuccess,
-      dataType: 'json',
-      error: function() {
-        console.log('Request for TURN server failed. Will continue call with default STUN.');
-      },
-      complete: function() {
-        turnDone = true;
-        startWhenReady();
-      }
-    });
-  }
-
-  var onTURNSuccess = function(turnServer) {
-    var iceServer = createIceServer(turnServer.uris[0],
-                                    turnServer.username,
-                                    turnServer.password);
-    pcConfig.iceServers.push(iceServer);
-    console.log('TURN server request was successful.');
-  }
-
-  var createIceServer = function(url, username, password) {
-    var iceServer = null;
-    var url_parts = url.split(':');
-    if (url_parts[0].indexOf('stun') === 0) {
-      // Create iceServer with stun url.
-      iceServer = { 'url': url };
-    } else if (url_parts[0].indexOf('turn') === 0) {
-      if (webRTCDetectedVersion < 28) {
-        var url_turn_parts = url.split("turn:");
-        iceServer = {
-          'url': 'turn:' + username + '@' + url_turn_parts[1],
-          'credential': password
-        };
-      } else {
-        var iceServer = {
-          'url': url,
-          'credential': password,
-          'username': username
-        };
-      }
-    }
-    return iceServer;
-  }
-
-  // Send ice candidates that have been received by the ice agent to peer
   var onIceCandidate = function(event) {
     if (event.candidate) {
       sendMessage({
@@ -308,9 +255,9 @@
   var tryCreateConnection = function() {
     try {
 
-      // The pc object has the information to find and acess the STUN and TURN servers.
+      // The pc object has the information to find and acess the STUN server.
       // The pc has an associated ICE agent that is responsible for interfacing with the
-      // STUN and TURN servers
+      // STUN server
       pc = new webkitRTCPeerConnection(pcConfig, pcConstraints);
 
       // Handles a changed to the state of the ICE agent, Called any time
