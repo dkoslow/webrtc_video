@@ -13,6 +13,11 @@
   <h1>Screenshare with WebRTC (requires HTTPS)</h1>
   <div id="container">
     <h3>Hello <%= name %></h3>
+    <% users.forEach(function(user) { %>
+      <% if(user !== name) { %>
+        <h3>Friends online: <a href="/connection"><%= user %></a></h3>
+      <% } %>
+    <% }) %>
     <a href="/connection">Connect!</a>
   </div>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>

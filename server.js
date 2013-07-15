@@ -8,6 +8,7 @@ var express = require('express'),
     server = require('http').createServer(app),
     io = require('socket.io').listen(server),
     qs = require('querystring'),
+    users = [],
     initiated;
 
 app.set('views', __dirname + '/views');
@@ -24,7 +25,8 @@ app.get('/', function (req, res) {
 
 app.post('/lobby', function (req, res) {
   var name = req.body.name;
-  res.render('lobby.html', { name: req.body.name });
+  users.push(name);
+  res.render('lobby.html', { name: req.body.name, users: users });
 })
 
 app.get('/connection', function (req, res) {
