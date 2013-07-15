@@ -7,6 +7,7 @@ var express = require('express'),
     app = express(),
     server = require('http').createServer(app),
     io = require('socket.io').listen(server),
+    qs = require('querystring'),
     initiated;
 
 app.set('views', __dirname + '/views');
@@ -19,6 +20,11 @@ server.listen(3000);
 
 app.get('/', function (req, res) {
   res.render('index.html');
+})
+
+app.post('/lobby', function (req, res) {
+  var name = req.body.name;
+  res.render('lobby.html', { name: req.body.name });
 })
 
 app.get('/connection', function (req, res) {

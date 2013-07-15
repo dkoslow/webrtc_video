@@ -10,11 +10,11 @@
 
 </head>
 <body>
-  <p>Please enter your name:</p>
-  <form action="/lobby" method="POST">
-    <input type="text" name="name">
-    <button>Login</button>
-  </form>
+  <h1>Screenshare with WebRTC (requires HTTPS)</h1>
+  <div id="container">
+    <h3>Hello <%= name %></h3>
+    <a href="/connection">Connect!</a>
+  </div>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
 </body>
 </html>
