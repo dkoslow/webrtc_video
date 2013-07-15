@@ -351,6 +351,10 @@
     return merged;
   }
 
+  $("ul.users li a").on("click", function(e) {
+    e.preventDefault();
+    socket.emit('connectionRequest', this.data("socket-id"));
+  })
 
   // Section 9: Opus stuff (Direct C+P)
 
