@@ -6,7 +6,8 @@
 var express = require('express'),
     app = express(),
     server = require('http').createServer(app),
-    io = require('socket.io').listen(server);
+    io = require('socket.io').listen(server),
+    initiated;
 
 app.use(express.bodyParser());
 app.use(express.static(__dirname + '/public'));
@@ -17,14 +18,11 @@ app.get('/', function (req, res) {
   res.render('index');
 })
 
-var initiated;
-
 app.get('/handshake', function (req, res) {
   var user_id,
       room_key,
       initiator,
       pc_config,
-      pc_constraints,
       media_constraints,
       stereo,
       client_data;
@@ -48,14 +46,7 @@ app.get('/handshake', function (req, res) {
     return { 'iceServers': servers };
   }
 
-  // This no longer seems to do anything, need to refactor later
-  var createPcConstraints = function() {
-    var constraints = { 'optional': [] };
-    return constraints; 
-  }
-
   var createMediaConstraints = function() {
-    // var video_constraints = { 'optional': [], 'mandatory': {} };
     var media_constraints = { 'video': true, 'audio': true };
     return media_constraints;
   }
@@ -70,7 +61,6 @@ app.get('/handshake', function (req, res) {
   }
 
   pc_config = createPcConfig();
-  pc_constraints = createPcConstraints();
   media_constraints = createMediaConstraints();
   stereo = false; // Revisit this later to see what it does
 
@@ -79,7 +69,6 @@ app.get('/handshake', function (req, res) {
     'room_key': room_key,
     'initiator': initiator,
     'pc_config': pc_config,
-    'pc_constraints': pc_constraints,
     'media_constraints': media_constraints,
     'stereo': stereo
   }

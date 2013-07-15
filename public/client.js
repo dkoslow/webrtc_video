@@ -1,4 +1,4 @@
-;(function(exports) {
+// ;(function(exports) {
 
   // Section 1: Initialize global variables and do app server handshake
 
@@ -37,7 +37,6 @@
       roomKey,
       initiator,
       pcConfig,
-      pcConstraints,
       offerConstraints,
       mediaConstraints,
       stereo;
@@ -55,7 +54,6 @@
         roomKey = data['room_key'];
         initiator = data['initiator'];
         pcConfig = data['pc_config'];
-        pcConstraints = data['pc_constraints'];
         mediaConstraints = data['media_constraints'];
         stereo = data['stereo'];
 
@@ -258,7 +256,7 @@
       // The pc object has the information to find and acess the STUN server.
       // The pc has an associated ICE agent that is responsible for interfacing with the
       // STUN server
-      pc = new webkitRTCPeerConnection(pcConfig, pcConstraints);
+      pc = new webkitRTCPeerConnection(pcConfig);
 
       // Handles a changed to the state of the ICE agent, Called any time
       // that the ice agent receives an ice candidate from the ICE server
@@ -463,4 +461,4 @@
 
   setTimeout(initialize, 2000);
 
-}(this));
+// }(this));
