@@ -1,8 +1,3 @@
-/* TO DO:
-- Set up rooms
-- Delete room keys?
-*/
-
 var express = require('express'),
     app = express(),
     server = require('http').createServer(app),
