@@ -10,11 +10,30 @@
 
 </head>
 <body>
-  <p>Please enter your name:</p>
-  <form action="/lobby" method="POST">
-    <input type="text" name="name">
-    <button>Login</button>
-  </form>
+  <h1>Screenshare with WebRTC (requires HTTPS)</h1>
+  <div id="container">
+    <h3>Friends online:</h3>
+    <ul>
+    <% users.forEach(function(userData) { %>
+      <li><%= userData.name %>: <%= userData.socketId %></li>
+    <% }) %>
+    </ul>
+    <button id="flip">Flip video source</button>
+    <div id="mediaContainer">
+      <div id ="local">
+        <video id="localVideo" autoplay="autoplay" muted="true"/>
+      </div>
+      <div id="remote">
+        <video id="remoteVideo" autoplay="autoplay">
+        </video>
+        <div id="mini">
+          <video id="miniVideo" autoplay="autoplay" muted="true"/>
+        </div>
+      </div>
+    </div>
+  </div>
+
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+<script src="client.js"></script>
 </body>
 </html>

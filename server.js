@@ -8,24 +8,14 @@ var express = require('express'),
 
 app.set('views', __dirname + '/views');
 app.engine('html', require('ejs').renderFile);
-app.use(express.static('views'));
+app.use(express.static('assets'));
 
 app.use(express.bodyParser());
 
 server.listen(3000);
 
 app.get('/', function (req, res) {
-  res.render('index.html');
-})
-
-app.post('/lobby', function (req, res) {
-  var name = req.body.name;
-  users.push(name);
-  res.render('lobby.html', { name: req.body.name, users: users });
-})
-
-app.get('/connection', function (req, res) {
-  res.render('connection.html');
+  res.render('index.html', {users: users});
 })
 
 app.get('/handshake', function (req, res) {
@@ -89,6 +79,10 @@ app.get('/handshake', function (req, res) {
 io.sockets.on('connection', function(socket) {
   var otherUser;
 
+  socket.on('register', function(userData) {
+    users.push({socketId: socket.id, name: userData.name});
+  });
+
   socket.on('room', function(room) {
     console.log(socket.id + " asked to join room: " + room);
     socket.join(room);
@@ -144,6 +138,7 @@ io.sockets.on('connection', function(socket) {
   }
 
   socket.on('disconnect', function () {
+    // TODO: Remove user from users where socketId === socket.id
     io.sockets.emit('User disconnected');
   });
 })

@@ -148,6 +148,7 @@
   var openChannel = function() {
     console.log('Opening the channel');
     socket = io.connect();
+    socket.emit('register', {name: prompt("Name: ")});
     socket.on('connect', onChannelOpened);
     socket.on('message', onChannelMessage);
     socket.on('disconnect', onChannelClosed);
