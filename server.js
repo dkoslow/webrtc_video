@@ -9,13 +9,20 @@ var express = require('express'),
     io = require('socket.io').listen(server),
     initiated;
 
+app.set('views', __dirname + '/views');
+app.engine('html', require('ejs').renderFile);
+app.use(express.static('views'));
+
 app.use(express.bodyParser());
-app.use(express.static(__dirname + '/public'));
 
 server.listen(3000);
 
 app.get('/', function (req, res) {
-  res.render('index');
+  res.render('index.html');
+})
+
+app.get('/connection', function (req, res) {
+  res.render('connection.html');
 })
 
 app.get('/handshake', function (req, res) {
