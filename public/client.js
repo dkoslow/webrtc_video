@@ -1,4 +1,4 @@
-// ;(function(exports) {
+;(function(exports) {
 
   // Section 1: Initialize global variables and do app server handshake
 
@@ -29,8 +29,7 @@
 
   // Connection and messaging variables
   var pc,
-      socket,
-      xmlhttp;
+      socket;
 
   // Application initialization variables (from server)
   var userId,
@@ -461,4 +460,4 @@
 
   setTimeout(initialize, 2000);
 
-// }(this));
+}(this));
