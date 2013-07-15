@@ -1,4 +1,4 @@
-// ;(function(exports) {
+;(function(exports) {
 
   // Section 1: Initialize global variables and do app server handshake
 
@@ -463,4 +463,4 @@
 
   setTimeout(initialize, 2000);
 
-// }(this));
+}(this));
