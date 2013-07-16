@@ -20,8 +20,6 @@ app.get('/', function (req, res) {
 
 app.get('/handshake', function (req, res) {
   var user_id,
-      room_key,
-      initiator,
       pc_config,
       media_constraints,
       stereo,
@@ -52,13 +50,6 @@ app.get('/handshake', function (req, res) {
   }
   
   user_id = createUserId();
-  room_key = createRoomKey();
-  if (!initiated) {
-    initiated = true;
-    initiator = true;
-  } else {
-    initiator = false;
-  }
 
   pc_config = createPcConfig();
   media_constraints = createMediaConstraints();
@@ -66,8 +57,6 @@ app.get('/handshake', function (req, res) {
 
   client_data = {
     'user_id': user_id,
-    'room_key': room_key,
-    'initiator': initiator,
     'pc_config': pc_config,
     'media_constraints': media_constraints,
     'stereo': stereo
@@ -77,65 +66,21 @@ app.get('/handshake', function (req, res) {
 })
 
 io.sockets.on('connection', function(socket) {
-  var otherUser;
 
   socket.on('register', function(userData) {
     users.push({socketId: socket.id, name: userData.name});
   });
 
-  socket.on('room', function(room) {
-    console.log(socket.id + " asked to join room: " + room);
-    socket.join(room);
-  });
 
   socket.on('message', function (msg) {
-    console.log('Server received a message of type: ' + msg.type);
-    otherUser = otherUser || setOtherUser();
+    console.log('Server received a message of type: ' + msg.type +
+      ' from: ' + msg.from + ' to: ' + msg.to);
+    console.log('Message: ' + console.dir(msg));
 
     // Send message to other user, if setOtherUser returns "null"
     // socket.io seems to be able to handle it gracefully
-    io.sockets.socket(otherUser).emit("message", msg);
+    io.sockets.socket(msg.to).emit('message', msg);
   });
-
-  var setOtherUser = function() {
-    var room,
-        roomNumber,
-        otherUserId;
-
-    room = io.sockets.manager.roomClients[socket.id];
-    roomNumber = findRoomNumber(room);
-    otherUserId = otherUserInRoom(roomNumber);
-    return otherUserId;
-  }
-
-  var findRoomNumber = function(room) {
-    for (var key in room) {
-      if (key.length > 0) {
-        return key.substr(1);
-      }
-    }
-  }
-
-  var otherUserInRoom = function(roomNumber) {
-    var clientArray = io.sockets.clients(roomNumber),
-        firstClientId,
-        secondClientId;
-
-    if (clientArray.length == 2) {
-      firstClientId = clientArray[0].id;
-      secondClientId = clientArray[1].id;
-
-      if (socket.id === firstClientId) {
-        return secondClientId;
-      } else if (socket.id === secondClientId ) {
-        return firstClientId;
-      } else {
-        console.log("Socket id does not match either client");
-      }
-    } else {
-      console.log("Message received in room with only one user.");
-    }
-  }
 
   socket.on('disconnect', function () {
     // TODO: Remove user from users where socketId === socket.id

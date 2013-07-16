@@ -23,18 +23,16 @@
   var socket;
 
   // Groundwork function completion variables
-  var readyToConnect = false,
-      localStream,
+  var localStream,
       channelReady;
 
   // Connection and messaging variables
   var pc,
-      socket;
+      socket,
+      userName;
 
   // Application initialization variables (from server)
   var userId,
-      roomKey,
-      initiator,
       pcConfig,
       offerConstraints,
       mediaConstraints,
@@ -50,8 +48,6 @@
         console.log('Received intialization data from server: ' + data);
 
         userId = data['user_id'];
-        roomKey = data['room_key'];
-        initiator = data['initiator'];
         pcConfig = data['pc_config'];
         mediaConstraints = data['media_constraints'];
         stereo = data['stereo'];
@@ -70,27 +66,6 @@
     openChannel();
     console.log('Groundwork functions have been called');
   }
-
-  // Called by all three Groundwork Function branches.
-  // Makes sure all three branches have finished before executing.
-  var startWhenReady = function() {
-    if (!readyToConnect && localStream && channelReady) {
-      readyToConnect = true;
-
-      tryCreateConnection();
-
-      if (initiator) {
-        console.log('Initiator is ready to connect');
-        sendPeerConnectionOffer();
-      } else {
-        console.log('Receiver is ready to connect');
-        sendMessage({type: 'requestForOffer'});
-      }
-    } else {
-      console.log('startWhenReady failed.');
-    }
-  }
-
 
   // Section 2: Get local media
 
@@ -118,7 +93,6 @@
     localVideo.src = URL.createObjectURL(stream);
     localVideo.style.opacity = 1;
     localStream = stream;
-    startWhenReady();
   }
 
   var onUserMediaError = function(error) {
@@ -129,13 +103,14 @@
 
   // Section 3: Send ice candidates that have been received by the ice agent to peer
 
-  var onIceCandidate = function(event) {
+  var onIceCandidate = function(toSID, event) {
     if (event.candidate) {
       sendMessage({
         type: 'candidate',
         label: event.candidate.sdpMLineIndex,
         id: event.candidate.sdpMid,
-        candidate: event.candidate.candidate
+        candidate: event.candidate.candidate,
+        to: toSID
       });
     } else {
       console.log('End of candidates');
@@ -148,7 +123,8 @@
   var openChannel = function() {
     console.log('Opening the channel');
     socket = io.connect();
-    socket.emit('register', {name: prompt("Name: ")});
+    userName = prompt("Name: ");
+    socket.emit('register', {name: userName});
     socket.on('connect', onChannelOpened);
     socket.on('message', onChannelMessage);
     socket.on('disconnect', onChannelClosed);
@@ -156,9 +132,7 @@
 
   var onChannelOpened = function() {
     console.log('Channel opened');
-    socket.emit('room', roomKey);
     channelReady = true;
-    startWhenReady();
   }
 
   var onChannelMessage = function(message) {
@@ -168,10 +142,18 @@
       handlePeerConnectionOffer(message);
     } else if (message.type === 'answer') {
       handlePeerConnectionAnswer(message);
+    } else if (message.type === 'connectionRequest') {
+      if (confirm('Do you want to connect to: ' + message.name)) {
+        tryCreateConnection(message.from);
+        sendConnectionAnswer(message.from);
+      }
+    } else if(message.type === 'connectionAnswer') {
+      tryCreateConnection(message.from);
+      sendPeerConnectionOffer(message.from);
     } else if (message.type === 'candidate') {
       handleCandidateMessage(message);
     } else if (message.type === 'requestForOffer') {
-      sendPeerConnectionOffer();
+      sendPeerConnectionOffer(message.from);
     } else if (message.type === 'bye') {
       onHangup();
     } else {
@@ -189,38 +171,38 @@
 
 
   // Section 5: Set up the peer connection and message handler functions
+  var sendConnectionAnswer = function(toSID) {
+    sendMessage({
+      type: 'connectionAnswer',
+      to: toSID
+    });
+  }
 
-  var sendPeerConnectionOffer = function() {
-    if (readyToConnect) {
-      console.log('Sending offer to peer');
+  var sendPeerConnectionOffer = function(toSID) {
+    console.log('Sending offer to peer');
 
-      // createOffer generates a blob of SDP that contains configuration options
-      // for the session, including: a description of local mediaStream attached
-      // to the peer connection object, the codec options supported by the
-      // implementation, and any candidates that have been gathered by the ICE Agent.
-      // Contains the full set of capabilities supported by the session, (as opposed
-      // to the answer, which only contains a specific negotiated subset to use)
-      // The constraints parameter provides additional control over the offer generated
-      pc.createOffer(setLocalAndSendMessage, null, sdpConstraints);
-    } else {
-      console.log("Received requestForOffer but was not readyToConnect.")
-    }
+    // createOffer generates a blob of SDP that contains configuration options
+    // for the session, including: a description of local mediaStream attached
+    // to the peer connection object, the codec options supported by the
+    // implementation, and any candidates that have been gathered by the ICE Agent.
+    // Contains the full set of capabilities supported by the session, (as opposed
+    // to the answer, which only contains a specific negotiated subset to use)
+    // The constraints parameter provides additional control over the offer generated
+    pc.createOffer(function(desc) {
+      setLocalAndSendMessage(toSID, desc);
+    }, null, sdpConstraints);
   }
 
   var handlePeerConnectionOffer = function(message) {
-    if (readyToConnect) {
-      if (stereo) {
-        message.sdp = addStereo(message.sdp);
-      }
-      pc.setRemoteDescription(new RTCSessionDescription(message));
-      sendPeerConnectionAnswer();
-      console.log('Connection answer sent to peer');
-    } else {
-      console.log("Received connection offer but was not readyToConnect.")
+    if (stereo) {
+      message.sdp = addStereo(message.sdp);
     }
+    pc.setRemoteDescription(new RTCSessionDescription(message));
+    sendPeerConnectionAnswer(message.from);
+    console.log('Connection answer sent to peer');
   }
 
-  var sendPeerConnectionAnswer = function() {
+  var sendPeerConnectionAnswer = function(toSID) {
     console.log('Sending answer to peer.');
 
     // Generates a blob of SDP that includes the supported configuration for
@@ -231,7 +213,9 @@
     // The session description generated by createAnswer will contain a specific
     // configuration that, along with the corresponding offer, will specify how
     // the media plane should be established.
-    pc.createAnswer(setLocalAndSendMessage, null, sdpConstraints);
+    pc.createAnswer(function(desc) {
+      setLocalAndSendMessage(toSID, desc)
+    } , null, sdpConstraints);
   }
 
   var handlePeerConnectionAnswer = function(message) {
@@ -240,9 +224,10 @@
     pc.setRemoteDescription(new RTCSessionDescription(message));
   }
 
-  var setLocalAndSendMessage = function(sessionDescription) {
+  var setLocalAndSendMessage = function(toSID, sessionDescription) {
     // Set Opus as the preferred codec in SDP if Opus is present
     sessionDescription.sdp = preferOpus(sessionDescription.sdp);
+    sessionDescription.to = toSID;
 
     // Sets the local description equal of the peerconnection equal to the
     // blob elements generated by createOffer or createAnswer
@@ -250,23 +235,29 @@
     sendMessage(sessionDescription);
   }
 
-  var tryCreateConnection = function() {
-    try {
+  var tryCreateConnection = function(toSID) {
+    if (localStream && channelReady) {
+      try {
 
-      // The pc object has the information to find and acess the STUN server.
-      // The pc has an associated ICE agent that is responsible for interfacing with the
-      // STUN server
-      pc = new webkitRTCPeerConnection(pcConfig);
+        // The pc object has the information to find and acess the STUN server.
+        // The pc has an associated ICE agent that is responsible for interfacing with the
+        // STUN server
+        pc = new webkitRTCPeerConnection(pcConfig);
 
-      // Handles a changed to the state of the ICE agent, Called any time
-      // that the ice agent receives an ice candidate from the ICE server
-      pc.onicecandidate = onIceCandidate;
-      console.log('Created a new peer connection')
-      pc.addStream(localStream);
-      pc.onaddstream = onRemoteStreamAdded;
-      pc.onremovestream = onRemoteStreamRemoved;
-    } catch (error) {
-      console.log('Failed to create PeerConnection, exception: ' + error.message);
+        // Handles a changed to the state of the ICE agent, Called any time
+        // that the ice agent receives an ice candidate from the ICE server
+        pc.onicecandidate = function(desc) {
+          onIceCandidate(toSID, desc);
+        }
+        console.log('Created a new peer connection')
+        pc.addStream(localStream);
+        pc.onaddstream = onRemoteStreamAdded;
+        pc.onremovestream = onRemoteStreamRemoved;
+      } catch (error) {
+        console.log('Failed to create PeerConnection, exception: ' + error.message);
+      }  
+    } else {
+      console.log('Failed to create peerConnection object');
     }
   }
 
@@ -329,16 +320,17 @@
     pc = null;
   }
 
-  window.onbeforeunload = function() {
-    sendMessage({type: 'bye'});
-    console.log('Bye sent on refreshing page to ensure room is cleaned.');
-  }
+  // window.onbeforeunload = function() {
+  //   sendMessage({type: 'bye'});
+  //   console.log('Bye sent on refreshing page to ensure room is cleaned.');
+  // }
 
 
   // Section 8: Utilities
 
   var sendMessage = function(message) {
     console.log('Sending client to server message of type: ' + message.type);
+    message.from = socket.socket.sessionid;
     socket.emit('message', message);
   }
 
@@ -351,9 +343,14 @@
     return merged;
   }
 
-  $("ul.users li a").on("click", function(e) {
+  $("#user").on("click", function(e) {
     e.preventDefault();
-    socket.emit('connectionRequest', this.data("socket-id"));
+    socket.emit('message', {
+      type: 'connectionRequest',
+      to: this.dataset.socketId,
+      name: userName,
+      from: socket.socket.sessionid
+    })
   })
 
   // Section 9: Opus stuff (Direct C+P)
