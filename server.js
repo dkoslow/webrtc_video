@@ -69,6 +69,11 @@ io.sockets.on('connection', function(socket) {
 
   socket.on('register', function(userData) {
     users.push({socketId: socket.id, name: userData.name});
+    socket.broadcast.emit('message', {
+      type: 'userRegister',
+      socketId: socket.id,
+      name: userData.name
+    })
   });
 
 

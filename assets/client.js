@@ -154,6 +154,8 @@
       handleCandidateMessage(message);
     } else if (message.type === 'requestForOffer') {
       sendPeerConnectionOffer(message.from);
+    } else if (message.type = 'userRegister') {
+      updateUsersList(message.socketId, message.name);
     } else if (message.type === 'bye') {
       onHangup();
     } else {
@@ -352,6 +354,10 @@
       from: socket.socket.sessionid
     })
   })
+
+  var updateUsersList = function(socketId, name) {
+    $("#users").append('<li id="user" data-socket-id=' + socketId + '><a href="#">' + name + '</a></li>')
+  }
 
   // Section 9: Opus stuff (Direct C+P)
 

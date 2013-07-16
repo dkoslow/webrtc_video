@@ -13,7 +13,7 @@
   <h1>Screenshare with WebRTC (requires HTTPS)</h1>
   <div id="container">
     <h3>Friends online:</h3>
-    <ul>
+    <ul id="users">
     <% users.forEach(function(userData) { %>
       <li id="user" data-socket-id="<%= userData.socketId %>"><a href="#"><%= userData.name %></a></li>
     <% }) %>
