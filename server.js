@@ -66,16 +66,19 @@ app.get('/handshake', function (req, res) {
 })
 
 io.sockets.on('connection', function(socket) {
+  var userName;
 
   socket.on('register', function(userData) {
-    users.push({socketId: socket.id, name: userData.name});
+    userName = userData.name
+    users.push({socketId: socket.id, name: userName});
     socket.broadcast.emit('message', {
       type: 'userRegister',
       socketId: socket.id,
       name: userData.name
     })
+    console.log(userName + " added to users list.")
+    console.log(users);
   });
-
 
   socket.on('message', function (msg) {
     console.log('Server received a message of type: ' + msg.type +
@@ -88,7 +91,17 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('disconnect', function () {
-    // TODO: Remove user from users where socketId === socket.id
-    io.sockets.emit('User disconnected');
+    for(var i=0, len = users.length; i < len; i++) {
+      if(users[i].name === userName) {
+        users.splice(i, 1);
+        break;
+      }
+    }
+    socket.broadcast.emit('message', {
+      type: 'userDisconnect',
+      socketId: socket.id
+    });
+    console.log(userName + " removed from users list.")
+    console.log(users);
   });
 })

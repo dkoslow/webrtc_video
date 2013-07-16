@@ -123,7 +123,7 @@
   var openChannel = function() {
     console.log('Opening the channel');
     socket = io.connect();
-    userName = prompt("Name: ");
+    userName = prompt("What is your name friendo? ");
     socket.emit('register', {name: userName});
     socket.on('connect', onChannelOpened);
     socket.on('message', onChannelMessage);
@@ -154,8 +154,10 @@
       handleCandidateMessage(message);
     } else if (message.type === 'requestForOffer') {
       sendPeerConnectionOffer(message.from);
-    } else if (message.type = 'userRegister') {
-      updateUsersList(message.socketId, message.name);
+    } else if (message.type === 'userRegister') {
+      appendToUsersList(message.socketId, message.name);
+    } else if (message.type === 'userDisconnect') {
+      removeFromUsersList(message.socketId);
     } else if (message.type === 'bye') {
       onHangup();
     } else {
@@ -355,9 +357,16 @@
     })
   })
 
-  var updateUsersList = function(socketId, name) {
-    $("#users").append('<li id="user" data-socket-id=' + socketId + '><a href="#">' + name + '</a></li>')
+  var appendToUsersList = function(socketId, name) {
+    $("#users").append('<li class="user" data-socket-id=' + socketId + '><a href="#">' + name + '</a></li>')
   }
+
+  var removeFromUsersList = function(socketId) {
+    $(".user").filter(function() {
+      return this.dataset.socketId === socketId
+    }).remove();
+  }
+
 
   // Section 9: Opus stuff (Direct C+P)
 
