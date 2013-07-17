@@ -1,6 +1,6 @@
-;(function(exports) {
+// ;(function(exports) {
 
-  // Section 1: Initialize global variables and do app server handshake
+  // Section 0: Global variables
 
   // Media initialization varibles
   var getUserMedia = navigator.webkitGetUserMedia.bind(navigator),
@@ -9,9 +9,15 @@
       miniVideo,
       remoteVideo,
       mediaContainer,
-      videoTracks;
+      videoTracks,
+      localStream;
 
-  // Media constraints
+  // Connection and messaging variables
+  var pc,
+      socket,
+      userName;
+
+  // sdp constraints
   var sdpConstraints = {
     'mandatory': {
       'OfferToReceiveAudio': true,
@@ -19,46 +25,26 @@
     }
   };
 
-  // Socket
-  var socket;
+  // Application initialization variables
+  var pcConfig,
+      mediaConstraints;
 
-  // Groundwork function completion variables
-  var localStream,
-      channelReady;
-
-  // Connection and messaging variables
-  var pc,
-      socket,
-      userName;
-
-  // Application initialization variables (from server)
-  var userId,
-      pcConfig,
-      offerConstraints,
-      mediaConstraints,
-      stereo;
+  // Section 1: Initialize video and channel
 
   var initialize = function(){
-    console.log('Sending request for initialization variables')
-    $.ajax({
-      url: '/handshake',
-      dataType: 'json',
+    console.log('Initializing')
 
-      success: function(data) {
-        console.log('Received intialization data from server: ' + data);
+    pcConfig = createPcConfig();
+    mediaConstraints = { 'video': true, 'audio': true };
 
-        userId = data['user_id'];
-        pcConfig = data['pc_config'];
-        mediaConstraints = data['media_constraints'];
-        stereo = data['stereo'];
+    callGroundworkFunctions();
+  }
 
-        callGroundworkFunctions();
-      },
-      error: function(_, errorMessage) {
-        console.log('Handshake failed: ', status);
-        alert('Initialization failed. Please exit video chat and try again.');
-      }
-    });
+  var createPcConfig = function() {
+    var servers = [];
+    var stun_config = 'stun: stun.l.google.com:19302';
+    servers.push({ 'url': stun_config });
+    return { 'iceServers': servers };
   }
 
   var callGroundworkFunctions = function() {
@@ -132,7 +118,6 @@
 
   var onChannelOpened = function() {
     console.log('Channel opened');
-    channelReady = true;
   }
 
   var onChannelMessage = function(message) {
@@ -173,6 +158,12 @@
     console.log('Channel closed');
   }
 
+  var sendMessage = function(message) {
+    console.log('Sending client to server message of type: ' + message.type);
+    message.from = socket.socket.sessionid;
+    socket.emit('message', message);
+  }
+
 
   // Section 5: Set up the peer connection and message handler functions
   var sendConnectionAnswer = function(toSID) {
@@ -198,9 +189,6 @@
   }
 
   var handlePeerConnectionOffer = function(message) {
-    if (stereo) {
-      message.sdp = addStereo(message.sdp);
-    }
     pc.setRemoteDescription(new RTCSessionDescription(message));
     sendPeerConnectionAnswer(message.from);
     console.log('Connection answer sent to peer');
@@ -224,13 +212,10 @@
 
   var handlePeerConnectionAnswer = function(message) {
     console.log('Received answer from peer.');
-    if (stereo) message.sdp = addStereo(message.sdp);
     pc.setRemoteDescription(new RTCSessionDescription(message));
   }
 
   var setLocalAndSendMessage = function(toSID, sessionDescription) {
-    // Set Opus as the preferred codec in SDP if Opus is present
-    sessionDescription.sdp = preferOpus(sessionDescription.sdp);
     sessionDescription.to = toSID;
 
     // Sets the local description equal of the peerconnection equal to the
@@ -240,7 +225,7 @@
   }
 
   var tryCreateConnection = function(toSID) {
-    if (localStream && channelReady) {
+    if (localStream) {
       try {
 
         // The pc object has the information to find and acess the STUN server.
@@ -305,7 +290,7 @@
   }
 
 
-  // Section 7: Session handlers
+  // Section 7: DOM element modifiers
 
   function transitionToActive() {
     remoteVideo.style.opacity = 1;
@@ -314,40 +299,7 @@
     setTimeout(function() { miniVideo.style.opacity = 1; }, 1000);
   }
 
-  var hangup = function() {
-    onHangup();
-    socket.close();
-  }
-
-  var onHangup = function() {
-    if(pc) pc.close();
-    pc = null;
-  }
-
-  // window.onbeforeunload = function() {
-  //   sendMessage({type: 'bye'});
-  //   console.log('Bye sent on refreshing page to ensure room is cleaned.');
-  // }
-
-
-  // Section 8: Utilities
-
-  var sendMessage = function(message) {
-    console.log('Sending client to server message of type: ' + message.type);
-    message.from = socket.socket.sessionid;
-    socket.emit('message', message);
-  }
-
-  var mergeConstraints = function(cons1, cons2) {
-    var merged = cons1;
-    for (var name in cons2.mandatory) {
-      merged.mandatory[name] = cons2.mandatory[name];
-    }
-    merged.optional.concat(cons2.optional);
-    return merged;
-  }
-
-  $("#user").on("click", function(e) {
+  $(document).on('click', '.user', function(e) {
     e.preventDefault();
     socket.emit('message', {
       type: 'connectionRequest',
@@ -367,114 +319,6 @@
     }).remove();
   }
 
+  window.onload = initialize;
 
-  // Section 9: Opus stuff (Direct C+P)
-
-  // Set Opus as the default audio codec if it's present.
-  function preferOpus(sdp) {
-    var sdpLines = sdp.split('\r\n');
-
-    // Search for m line.
-    for (var i = 0; i < sdpLines.length; i++) {
-      if (sdpLines[i].search('m=audio') !== -1) {
-        var mLineIndex = i;
-        break;
-      }
-    }
-    if (mLineIndex === null)
-      return sdp;
-
-    // If Opus is available, set it as the default in m line.
-    for (var i = 0; i < sdpLines.length; i++) {
-      if (sdpLines[i].search('opus/48000') !== -1) {
-        var opusPayload = extractSdp(sdpLines[i], /:(\d+) opus\/48000/i);
-        if (opusPayload)
-          sdpLines[mLineIndex] = setDefaultCodec(sdpLines[mLineIndex],
-                                                 opusPayload);
-        break;
-      }
-    }
-
-    // Remove CN in m line and sdp.
-    sdpLines = removeCN(sdpLines, mLineIndex);
-
-    sdp = sdpLines.join('\r\n');
-    return sdp;
-  }
-
-  // Set Opus in stereo if stereo is enabled.
-  function addStereo(sdp) {
-    var sdpLines = sdp.split('\r\n');
-
-    // Find opus payload.
-    for (var i = 0; i < sdpLines.length; i++) {
-      if (sdpLines[i].search('opus/48000') !== -1) {
-        var opusPayload = extractSdp(sdpLines[i], /:(\d+) opus\/48000/i);
-        break;
-      }
-    }
-
-    // Find the payload in fmtp line.
-    for (var i = 0; i < sdpLines.length; i++) {
-      if (sdpLines[i].search('a=fmtp') !== -1) {
-        var payload = extractSdp(sdpLines[i], /a=fmtp:(\d+)/ );
-        if (payload === opusPayload) {
-          var fmtpLineIndex = i;
-          break;
-        }
-      }
-    }
-    // No fmtp line found.
-    if (fmtpLineIndex === null)
-      return sdp;
-
-    // Append stereo=1 to fmtp line.
-    sdpLines[fmtpLineIndex] = sdpLines[fmtpLineIndex].concat(' stereo=1');
-
-    sdp = sdpLines.join('\r\n');
-    return sdp;
-  }
-
-  function extractSdp(sdpLine, pattern) {
-    var result = sdpLine.match(pattern);
-    return (result && result.length == 2)? result[1]: null;
-  }
-
-  // Set the selected codec to the first in m line.
-  function setDefaultCodec(mLine, payload) {
-    var elements = mLine.split(' ');
-    var newLine = new Array();
-    var index = 0;
-    for (var i = 0; i < elements.length; i++) {
-      if (index === 3) // Format of media starts from the fourth.
-        newLine[index++] = payload; // Put target payload to the first.
-      if (elements[i] !== payload)
-        newLine[index++] = elements[i];
-    }
-    return newLine.join(' ');
-  }
-
-  // Strip CN from sdp before CN constraints is ready.
-  function removeCN(sdpLines, mLineIndex) {
-    var mLineElements = sdpLines[mLineIndex].split(' ');
-    // Scan from end for the convenience of removing an item.
-    for (var i = sdpLines.length-1; i >= 0; i--) {
-      var payload = extractSdp(sdpLines[i], /a=rtpmap:(\d+) CN\/\d+/i);
-      if (payload) {
-        var cnPos = mLineElements.indexOf(payload);
-        if (cnPos !== -1) {
-          // Remove CN payload from m line.
-          mLineElements.splice(cnPos, 1);
-        }
-        // Remove CN line in sdp
-        sdpLines.splice(i, 1);
-      }
-    }
-
-    sdpLines[mLineIndex] = mLineElements.join(' ');
-    return sdpLines;
-  }
-
-  setTimeout(initialize, 2000);
-
-}(this));
+// }(this));
