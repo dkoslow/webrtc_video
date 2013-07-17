@@ -15,7 +15,7 @@
     <h3>Friends online:</h3>
     <ul id="users">
     <% users.forEach(function(userData) { %>
-      <li class="user" data-socket-id="<%= userData.socketId %>"><a href="#"><%= userData.name %></a></li>
+      <li class="user" data-name="<%= userData.name %>" data-socket-id="<%= userData.socketId %>"><a href="#"><%= userData.name %></a></li>
     <% }) %>
     </ul>
     <div id="hangupContainer"></div>

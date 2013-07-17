@@ -40,6 +40,13 @@ io.sockets.on('connection', function(socket) {
     io.sockets.socket(msg.to).emit('message', msg);
   });
 
+  socket.on('status', function(status) {
+    socket.broadcast.emit('message', {
+      type: status.userStatus,
+      socketId: socket.id
+    });
+  })
+
   socket.on('disconnect', function () {
     for(var i=0, len = users.length; i < len; i++) {
       if(users[i].name === userName) {

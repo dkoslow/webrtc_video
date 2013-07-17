@@ -137,6 +137,10 @@
       handleCandidateMessage(message);
     } else if (message.type === 'requestForOffer') {
       sendPeerConnectionOffer(message.from);
+    } else if (message.type === 'busyStatus') {
+      setBusyStatus(message.socketId);
+    } else if (message.type === 'availableStatus') {
+      setAvailableStatus(message.socketId);
     } else if (message.type === 'userRegister') {
       appendToUsersList(message.socketId, message.name);
     } else if (message.type === 'userDisconnect') {
@@ -242,6 +246,9 @@
           onRemoteStreamAdded(toSID, event);
         }
         pc.onremovestream = onRemoteStreamRemoved;
+        socket.emit('status', {
+          userStatus: 'busyStatus'
+        });
       } catch (error) {
         console.log('Failed to create PeerConnection, exception: ' + error.message);
       }  
@@ -303,6 +310,9 @@
     pc.close();
     removeHangUpButton();
     transitiontoInactive();
+    socket.emit('status', {
+      userStatus: 'availableStatus'
+    })
   }
 
 
@@ -343,7 +353,7 @@
   })
 
   var appendToUsersList = function(socketId, name) {
-    $("#users").append('<li class="user" data-socket-id=' + socketId + '><a href="#">' + name + '</a></li>')
+    $("#users").append('<li class="user" data-name=' + name + ' data-socket-id=' + socketId + '><a href="#">' + name + '</a></li>')
   }
 
   var removeFromUsersList = function(socketId) {
@@ -358,6 +368,22 @@
 
   var removeHangUpButton = function() {
     $("#hangup").remove();
+  }
+
+  var setBusyStatus = function(socketId) {
+    var userElement = $(".user").filter(function() {
+      return this.dataset.socketId === socketId
+    })
+    var name = userElement.data('name');
+    userElement.replaceWith('<li class="user" data-name=' + name + ' data-socket-id=' + socketId + '><i>' + name + '(busy)</i>');
+  }
+
+  var setAvailableStatus = function(socketId) {
+    var userElement = $(".user").filter(function() {
+      return this.dataset.socketId === socketId
+    })
+    var name = userElement.data('name');
+    userElement.replaceWith('<li class="user" data-name=' + name + ' data-socket-id=' + socketId + '><a href="#">' + name + '</a></li>');
   }
 
   window.onload = initialize;
