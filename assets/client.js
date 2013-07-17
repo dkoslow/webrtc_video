@@ -9,7 +9,6 @@
       miniVideo,
       remoteVideo,
       mediaContainer,
-      videoTracks,
       localStream;
 
   // Connection and messaging variables
@@ -86,7 +85,6 @@
                 error.code);
   }
 
-
   // Section 3: Send ice candidates that have been received by the ice agent to peer
 
   var onIceCandidate = function(toSID, event) {
@@ -144,7 +142,7 @@
     } else if (message.type === 'userDisconnect') {
       removeFromUsersList(message.socketId);
     } else if (message.type === 'bye') {
-      onHangup();
+      callEnded();
     } else {
       console.log('Received message of unknown type: ' + message);
     }
@@ -240,7 +238,9 @@
         }
         console.log('Created a new peer connection')
         pc.addStream(localStream);
-        pc.onaddstream = onRemoteStreamAdded;
+        pc.onaddstream = function(event) {
+          onRemoteStreamAdded(toSID, event);
+        }
         pc.onremovestream = onRemoteStreamRemoved;
       } catch (error) {
         console.log('Failed to create PeerConnection, exception: ' + error.message);
@@ -267,37 +267,66 @@
 
 
   // Section 6: Manage remote video
-  var onRemoteStreamAdded = function(event) {
+  var onRemoteStreamAdded = function(toSID, event) {
     console.log('Remote stream added.');
     remoteStream = event.stream;
     miniVideo.src = localVideo.src;
     remoteVideo.src = URL.createObjectURL(event.stream);
-    waitForRemoteVideo();
+    waitForRemoteVideo(toSID);
   }
 
-  function onRemoteStreamRemoved(event) {
+  var onRemoteStreamRemoved = function(event) {
     console.log('Remote stream removed');
   }
 
-  function waitForRemoteVideo() {
-    videoTracks = remoteStream.getVideoTracks();
+  var waitForRemoteVideo = function(toSID) {
+    var videoTracks = remoteStream.getVideoTracks();
     if (videoTracks.length === 0 || remoteVideo.currentTime > 0) {
-      transitionToActive();
+      transitionToActive(toSID);
     } else {
       console.log('Waiting for remote video');
-      setTimeout(waitForRemoteVideo, 100);
+      setTimeout(waitForRemoteVideo, 100, [toSID]);
     }
   }
 
+  // Section 7: Video functionality
 
-  // Section 7: DOM element modifiers
+  var hangUp = function(toSID) {
+    sendMessage({
+      type: 'bye',
+      to: toSID
+    });
+    callEnded();
+  }
 
-  function transitionToActive() {
+  var callEnded = function() {
+    pc.close();
+    removeHangUpButton();
+    transitiontoInactive();
+  }
+
+
+  // Section 8: DOM element modifiers
+
+  var transitionToActive = function(toSID) {
     remoteVideo.style.opacity = 1;
     mediaContainer.style.webkitTransform = 'rotateY(180deg)';
     setTimeout(function() { localVideo.src = ''; }, 500);
     setTimeout(function() { miniVideo.style.opacity = 1; }, 1000);
+    appendHangUpButton(toSID);
   }
+
+  var transitiontoInactive = function() {
+    mediaContainer.style.webkitTransform = 'rotateY(0deg)';
+    setTimeout(function() {
+      localVideo.src = miniVideo.src;
+      miniVideo.src = '';
+      remoteVideo.src = '';
+    }, 500);
+    miniVideo.style.opacity = 0;
+    remoteVideo.style.opacity = 0;
+  }
+
 
   $(document).on('click', '.user', function(e) {
     e.preventDefault();
@@ -309,6 +338,10 @@
     })
   })
 
+  $(document).on('click', '#hangup', function() {
+    hangUp(this.dataset.socketId);
+  })
+
   var appendToUsersList = function(socketId, name) {
     $("#users").append('<li class="user" data-socket-id=' + socketId + '><a href="#">' + name + '</a></li>')
   }
@@ -317,6 +350,14 @@
     $(".user").filter(function() {
       return this.dataset.socketId === socketId
     }).remove();
+  }
+
+  var appendHangUpButton = function(toSID) {
+    $("#hangupContainer").append('<br><button id="hangup" data-socket-id=' + toSID + '>Hang Up</button>');
+  }
+
+  var removeHangUpButton = function() {
+    $("#hangup").remove();
   }
 
   window.onload = initialize;
