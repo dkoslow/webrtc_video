@@ -9,6 +9,7 @@ app.engine('html', require('ejs').renderFile);
 app.use(express.static('assets'));
 
 app.use(express.bodyParser());
+app.use(express.favicon(__dirname + '/assets/favicon.ico'));
 
 server.listen(3000);
 
