@@ -18,6 +18,9 @@
       <li class="user" data-name="<%= userData.name %>" data-socket-id="<%= userData.socketId %>"><a href="#"><%= userData.name %></a></li>
     <% }) %>
     </ul>
+    <div id="flipContainer">
+      <button id="flip" data-status="webcam">Flip to screenshare</button>
+    </div>
     <div id="hangupContainer"></div>
     <div id="mediaContainer">
       <div id ="local">

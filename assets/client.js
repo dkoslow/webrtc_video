@@ -33,7 +33,7 @@
     pcConfig = createPcConfig();
 
     setVideoElements();
-    activateVideo();
+    activateWebcam();
     openChannel();
   }
 
@@ -44,7 +44,7 @@
     return { 'iceServers': servers };
   }
 
-  // Section 2: Get local media
+  // Section 2: Set local media
 
   var setVideoElements = function() {
     console.log('Initializing media elements')
@@ -54,9 +54,17 @@
     mediaContainer = document.getElementById('mediaContainer');
   }
 
-  var activateVideo = function() {
-    var videoChatConstraints = { 'video': true, 'audio': true };
-    tryGetUserMedia(videoChatConstraints);
+  var activateWebcam = function() {
+    var webcamConstraints = { 'video': true, 'audio': true };
+    tryGetUserMedia(webcamConstraints);
+  }
+
+  var activateScreenshare = function() {
+    var screenshareConstraints = {
+      mandatory: {
+        chromeMediaSource: 'screen'
+      }
+    }
   }
 
   var tryGetUserMedia = function(constraints) {
@@ -348,6 +356,23 @@
     hangUp(this.dataset.socketId);
   })
 
+  $(document).on('click', '#flip', function() {
+    var status = $("#flip").data('status');
+    var label = 'Flip to ' + status;
+    var newStatus;
+    if (status === 'webcam') {
+      activateScreenshare();
+      newStatus = 'screenshare';
+    } else if (status === 'screenshare') {
+      activateWebcam();
+      newStatus = 'webcam';
+    } else {
+      console.log("Flip button data holds invalid value");
+      return;
+    }
+    switchFlipButton(newStatus, label);
+  })
+
   var appendToUsersList = function(socketId, name) {
     $("#users").append('<li class="user" data-name=' + name + ' data-socket-id=' + socketId + '><a href="#">' + name + '</a></li>')
   }
@@ -380,6 +405,10 @@
     })
     var name = userElement.data('name');
     userElement.replaceWith('<li class="user" data-name=' + name + ' data-socket-id=' + socketId + '><a href="#">' + name + '</a></li>');
+  }
+
+  var switchFlipButton = function(status, label) {
+    $("#flip").replaceWith('<button id="flip" data-status='+ status +'>' + label + '</button>');
   }
 
   window.onload = initialize;
