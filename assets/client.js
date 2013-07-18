@@ -61,10 +61,13 @@
 
   var activateScreenshare = function() {
     var screenshareConstraints = {
-      mandatory: {
-        chromeMediaSource: 'screen'
+      'video': {
+        mandatory: {
+          chromeMediaSource: 'screen'
+        }
       }
     }
+    tryGetUserMedia(screenshareConstraints);
   }
 
   var tryGetUserMedia = function(constraints) {
