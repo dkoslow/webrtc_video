@@ -1,4 +1,4 @@
-// ;(function(exports) {
+;(function(exports) {
 
   // Section 0: Global variables
 
@@ -13,6 +13,7 @@
 
   // Connection and messaging variables
   var pc,
+      pcConfig,
       socket,
       userName;
 
@@ -24,19 +25,16 @@
     }
   };
 
-  // Application initialization variables
-  var pcConfig,
-      mediaConstraints;
-
   // Section 1: Initialize video and channel
 
   var initialize = function(){
     console.log('Initializing')
 
     pcConfig = createPcConfig();
-    mediaConstraints = { 'video': true, 'audio': true };
 
-    callGroundworkFunctions();
+    setVideoElements();
+    activateVideo();
+    openChannel();
   }
 
   var createPcConfig = function() {
@@ -46,21 +44,19 @@
     return { 'iceServers': servers };
   }
 
-  var callGroundworkFunctions = function() {
-    activateVideo();
-    openChannel();
-    console.log('Groundwork functions have been called');
-  }
-
   // Section 2: Get local media
 
-  var activateVideo = function() {
+  var setVideoElements = function() {
     console.log('Initializing media elements')
     localVideo = document.getElementById('localVideo');
     miniVideo = document.getElementById('miniVideo');
     remoteVideo = document.getElementById('remoteVideo');
     mediaContainer = document.getElementById('mediaContainer');
-    tryGetUserMedia(mediaConstraints);
+  }
+
+  var activateVideo = function() {
+    var videoChatConstraints = { 'video': true, 'audio': true };
+    tryGetUserMedia(videoChatConstraints);
   }
 
   var tryGetUserMedia = function(constraints) {
@@ -388,4 +384,4 @@
 
   window.onload = initialize;
 
-// }(this));
+}(this));
