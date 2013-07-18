@@ -1,6 +1,14 @@
+var fs = require('fs');
+
+var options = {
+  key: fs.readFileSync('ssl/humze.key'),
+  cert: fs.readFileSync('ssl/humze.com.crt'),
+  ca: [fs.readFileSync('ssl/gd_bundle1.crt'), fs.readFileSync('ssl/gd_bundle2.crt')]
+};
+
 var express = require('express'),
     app = express(),
-    server = require('http').createServer(app),
+    server = require('https').createServer(options, app),
     io = require('socket.io').listen(server),
     users = [];
 
@@ -11,7 +19,7 @@ app.use(express.static('assets'));
 app.use(express.bodyParser());
 app.use(express.favicon(__dirname + '/assets/favicon.ico'));
 
-server.listen(3000);
+server.listen(443);
 
 app.get('/', function (req, res) {
   res.render('index.html', {users: users});
