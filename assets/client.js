@@ -49,6 +49,9 @@
   var setVideoElements = function() {
     console.log('Initializing media elements')
     localVideo = document.getElementById('localVideo');
+    localVideo.addEventListener('loadedmetadata', function(){
+      window.onresize();
+    });
     miniVideo = document.getElementById('miniVideo');
     remoteVideo = document.getElementById('remoteVideo');
     mediaContainer = document.getElementById('mediaContainer');
@@ -330,6 +333,7 @@
     mediaContainer.style.webkitTransform = 'rotateY(180deg)';
     setTimeout(function() { localVideo.src = ''; }, 500);
     setTimeout(function() { miniVideo.style.opacity = 1; }, 1000);
+    window.onresize();
     appendHangUpButton(toSID);
   }
 
@@ -415,5 +419,29 @@
   }
 
   window.onload = initialize;
+
+  window.onresize = function() {
+    var aspectRatio;
+
+    if (remoteVideo.style.opacity === '1') {
+      aspectRatio = remoteVideo.videoWidth/remoteVideo.videoHeight;
+    } else if (localVideo.style.opacity === '1') {
+      aspectRatio = localVideo.videoWidth/localVideo.videoHeight;
+    } else {
+      return;
+    }
+
+    var innerHeight = this.innerHeight;
+    var innerWidth = this.innerWidth;
+    var videoWidth = innerWidth < aspectRatio * window.innerHeight ?
+                     innerWidth : aspectRatio * window.innerHeight;
+    var videoHeight = innerHeight < window.innerWidth / aspectRatio ?
+                      innerHeight : window.innerWidth / aspectRatio;
+    mediaContainerDiv = document.getElementById('mediaContainer');
+    mediaContainerDiv.style.width = videoWidth + 'px';
+    mediaContainerDiv.style.height = videoHeight + 'px';
+    mediaContainerDiv.style.left = (innerWidth - videoWidth) / 2 + 'px';
+    mediaContainerDiv.style.top = (innerHeight - videoHeight) / 2 + 'px';
+  }
 
 }(this));
