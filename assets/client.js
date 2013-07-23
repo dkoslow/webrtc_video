@@ -384,8 +384,7 @@
     var newStatus;
     var activateNewMediaSource;
     if (status === 'webcam') {
-      // activateNewMediaSource = activateScreenshare;
-      activateNewMediaSource = activateWebcam;
+      activateNewMediaSource = activateScreenshare;
       newStatus = 'screenshare';
     } else if (status === 'screenshare') {
       activateNewMediaSource = activateWebcam;
