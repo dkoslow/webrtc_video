@@ -15,7 +15,8 @@
   var pc,
       pcConfig,
       socket,
-      userName;
+      userName,
+      offerHandler;
 
   // sdp constraints
   var sdpConstraints = {
@@ -142,11 +143,9 @@
       }
     } else if(message.type === 'connectionAnswer') {
       tryCreateConnection(message.from);
-      sendPeerConnectionOffer(message.from);
+      offerHandler.sendOffer();
     } else if (message.type === 'candidate') {
       handleCandidateMessage(message);
-    } else if (message.type === 'requestForOffer') {
-      sendPeerConnectionOffer(message.from);
     } else if (message.type === 'busyStatus') {
       setBusyStatus(message.socketId);
     } else if (message.type === 'availableStatus') {
@@ -183,6 +182,14 @@
       type: 'connectionAnswer',
       to: toSID
     });
+  }
+
+  var makeOfferHandler = function(toSID) {
+    return {
+      sendOffer: function() {
+        sendPeerConnectionOffer(toSID)
+      }
+    }
   }
 
   var sendPeerConnectionOffer = function(toSID) {
@@ -259,12 +266,20 @@
         socket.emit('status', {
           userStatus: 'busyStatus'
         });
+        offerHandler = makeOfferHandler(toSID);
       } catch (error) {
         console.log('Failed to create PeerConnection, exception: ' + error.message);
       }  
     } else {
       console.log('Failed to create peerConnection object');
     }
+  }
+
+  var renegotiatePC = function(newStatus, activateNewStreamSource) {
+    pc.removeStream(localStream);
+    activateNewStreamSource();
+    pc.addStream(localStream);
+    offerHandler.sendOffer();
   }
 
   // Handles candidate messages, ensures that pc has been established
@@ -367,16 +382,19 @@
     var status = $("#flip").data('status');
     var label = 'Flip to ' + status;
     var newStatus;
+    var activateNewMediaSource;
     if (status === 'webcam') {
-      activateScreenshare();
+      // activateNewMediaSource = activateScreenshare;
+      activateNewMediaSource = activateWebcam;
       newStatus = 'screenshare';
     } else if (status === 'screenshare') {
-      activateWebcam();
+      activateNewMediaSource = activateWebcam;
       newStatus = 'webcam';
     } else {
       console.log("Flip button data holds invalid value");
       return;
     }
+    renegotiatePC(newStatus, activateNewMediaSource);
     switchFlipButton(newStatus, label);
   })
 
