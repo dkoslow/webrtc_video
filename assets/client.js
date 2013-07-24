@@ -1,4 +1,4 @@
-;(function(exports) {
+// ;(function(exports) {
 
   // Section 0: Global variables
 
@@ -8,6 +8,7 @@
       localVideo,
       miniVideo,
       remoteVideo,
+      localVideoSource,
       mediaContainer,
       localStream;
 
@@ -81,7 +82,8 @@
 
   var onUserMediaSuccess = function(stream) {
     console.log('User has granted access to local media');
-    localVideo.src = URL.createObjectURL(stream);
+    localVideoSource = URL.createObjectURL(stream);
+    localVideo.src = localVideoSource;
     localVideo.style.opacity = 1;
     localStream = stream;
   }
@@ -267,7 +269,7 @@
         pc.onaddstream = function(event) {
           onRemoteStreamAdded(toSID, event);
         }
-        pc.onremovestream = onRemoteStreamRemoved;
+        // pc.onremovestream = onRemoteStreamRemoved;
         socket.emit('status', {
           userStatus: 'busyStatus'
         });
@@ -305,17 +307,18 @@
   // Section 6: Manage remote video
 
   var onRemoteStreamAdded = function(toSID, event) {
+    transitiontoInactive();
     console.log('Remote stream added.');
+    miniVideo.src = localVideoSource;
     remoteStream = event.stream;
-    miniVideo.src = localVideo.src;
     remoteVideo.src = URL.createObjectURL(event.stream);
     waitForRemoteVideo(toSID);
   }
 
-  var onRemoteStreamRemoved = function(event) {
-    console.log('Remote stream removed');
-    transitiontoInactive();
-  }
+  // var onRemoteStreamRemoved = function(event) {
+  //   console.log('Remote stream removed');
+  //   transitiontoInactive();
+  // }
 
   var waitForRemoteVideo = function(toSID) {
     var videoTracks = remoteStream.getVideoTracks();
@@ -351,19 +354,17 @@
   var transitionToActive = function(toSID) {
     remoteVideo.style.opacity = 1;
     mediaContainer.style.webkitTransform = 'rotateY(180deg)';
-    setTimeout(function() { localVideo.src = ''; }, 500);
-    setTimeout(function() { miniVideo.style.opacity = 1; }, 1000);
+    localVideo.src = '';
+    miniVideo.style.opacity = 1;
     window.onresize();
     appendHangUpButton(toSID);
   }
 
   var transitiontoInactive = function() {
     mediaContainer.style.webkitTransform = 'rotateY(0deg)';
-    setTimeout(function() {
-      localVideo.src = miniVideo.src;
-      miniVideo.src = '';
-      remoteVideo.src = '';
-    }, 500);
+    localVideo.src = localVideoSource;
+    miniVideo.src = '';
+    remoteVideo.src = '';
     miniVideo.style.opacity = 0;
     remoteVideo.style.opacity = 0;
     removeHangUpButton();
@@ -467,4 +468,4 @@
     mediaContainerDiv.style.top = (innerHeight - videoHeight) / 2 + 'px';
   }
 
-}(this));
+// }(this));
