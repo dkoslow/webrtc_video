@@ -1,4 +1,4 @@
-// ;(function(exports) {
+;(function(exports) {
 
   // Section 0: Global variables
 
@@ -276,7 +276,6 @@
         pc.onaddstream = function(event) {
           onRemoteStreamAdded(toSID, event);
         }
-        // pc.onremovestream = onRemoteStreamRemoved;
         socket.emit('status', {
           userStatus: 'busyStatus'
         });
@@ -323,11 +322,6 @@
     waitForRemoteVideo(toSID);
   }
 
-  // var onRemoteStreamRemoved = function(event) {
-  //   console.log('Remote stream removed');
-  //   transitiontoInactive();
-  // }
-
   var waitForRemoteVideo = function(toSID) {
     var videoTracks = remoteStream.getVideoTracks();
     if (videoTracks.length === 0 || remoteVideo.currentTime > 0) {
@@ -338,7 +332,7 @@
     }
   }
 
-  // Section 7: Video functionality
+  // Section 7: Ending calls
 
   var hangUp = function(toSID) {
     sendMessage({
@@ -407,7 +401,6 @@
       console.log("Flip button data holds invalid value");
       return;
     }
-    // pc.removeStream(localStream);
     renegotiatePC(activateNewMediaSource);
     switchFlipButton(newStatus, label);
   })
@@ -476,4 +469,4 @@
     mediaContainerDiv.style.top = (innerHeight - videoHeight) / 2 + 'px';
   }
 
-// }(this));
+}(this));
