@@ -89,9 +89,6 @@
     localVideo.src = URL.createObjectURL(stream);
     localVideo.style.opacity = 1;
     localStream = stream;
-    if(pc) {
-      offerHandler.sendOffer();
-    }
   }
 
   var onUserMediaError = function(error) {
@@ -281,6 +278,7 @@
 
   var renegotiatePC = function(newStatus, activateNewStreamSource) {
     activateNewStreamSource();
+    offerHandler.sendOffer();
   }
 
   // Handles candidate messages, ensures that pc has been established
