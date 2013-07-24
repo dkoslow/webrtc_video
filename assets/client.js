@@ -89,12 +89,16 @@
     localVideo.src = URL.createObjectURL(stream);
     localVideo.style.opacity = 1;
     localStream = stream;
+    if(pc) {
+      offerHandler.sendOffer();
+    }
   }
 
   var onUserMediaError = function(error) {
     console.log('Failed to get access to local media. Error code was: ' +
                 error.code);
   }
+
 
   // Section 3: Send ice candidates that have been received by the ice agent to peer
 
@@ -276,10 +280,7 @@
   }
 
   var renegotiatePC = function(newStatus, activateNewStreamSource) {
-    pc.removeStream(localStream);
     activateNewStreamSource();
-    pc.addStream(localStream);
-    offerHandler.sendOffer();
   }
 
   // Handles candidate messages, ensures that pc has been established
@@ -299,6 +300,7 @@
 
 
   // Section 6: Manage remote video
+
   var onRemoteStreamAdded = function(toSID, event) {
     console.log('Remote stream added.');
     remoteStream = event.stream;
@@ -309,6 +311,7 @@
 
   var onRemoteStreamRemoved = function(event) {
     console.log('Remote stream removed');
+    transitiontoInactive();
   }
 
   var waitForRemoteVideo = function(toSID) {
@@ -333,7 +336,6 @@
 
   var callEnded = function() {
     pc.close();
-    removeHangUpButton();
     transitiontoInactive();
     socket.emit('status', {
       userStatus: 'availableStatus'
@@ -361,8 +363,8 @@
     }, 500);
     miniVideo.style.opacity = 0;
     remoteVideo.style.opacity = 0;
+    removeHangUpButton();
   }
-
 
   $(document).on('click', '.user', function(e) {
     e.preventDefault();
