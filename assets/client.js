@@ -432,7 +432,7 @@
     $("#flip").replaceWith('<button id="flip" data-status='+ status +'>' + label + '</button>');
   }
 
-  setTimeout(initialize, 2000);
+  window.onload = initialize;
 
   window.onresize = function() {
     var aspectRatio;
