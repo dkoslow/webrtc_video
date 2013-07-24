@@ -278,6 +278,7 @@
 
   var renegotiatePC = function(newStatus, activateNewStreamSource) {
     activateNewStreamSource();
+    pc.addStream(localStream);
     offerHandler.sendOffer();
   }
 
@@ -393,6 +394,7 @@
       console.log("Flip button data holds invalid value");
       return;
     }
+    pc.removeStream(localStream);
     renegotiatePC(newStatus, activateNewMediaSource);
     switchFlipButton(newStatus, label);
   })
