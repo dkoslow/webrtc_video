@@ -76,12 +76,7 @@
 
   var tryGetUserMedia = function(constraints) {
     console.log('Attempting to get user media.');
-    try {
-      getUserMedia(constraints, onUserMediaSuccess, onUserMediaError);
-    } catch(error) {
-      alert('Failed to capture local media. Please try again.');
-      console.log('getUserMedia failed with exception: ' + error.message);
-    }
+    getUserMedia(constraints, onUserMediaSuccess, onUserMediaError);
   }
 
   var onUserMediaSuccess = function(stream) {
