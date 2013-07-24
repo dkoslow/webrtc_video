@@ -111,14 +111,23 @@
 
   // Section 4: Set up the channel
 
+  var onUserNameInput = function(callback) {
+    $("#username-input-submit").on('click', function(e) {
+      e.preventDefault();
+      callback($("#username-input-field").val());
+      $("#username-input").hide();
+    });
+  }
+
   var openChannel = function() {
     console.log('Opening the channel');
     socket = io.connect();
-    userName = prompt("What is your name friendo? ");
-    socket.emit('register', {name: userName});
     socket.on('connect', onChannelOpened);
     socket.on('message', onChannelMessage);
     socket.on('disconnect', onChannelClosed);
+    onUserNameInput(function(username) {
+      socket.emit('register', {name: username});
+    });
   }
 
   var onChannelOpened = function() {
