@@ -59,12 +59,12 @@
     mediaContainer = document.getElementById('mediaContainer');
   }
 
-  var activateWebcam = function() {
+  var activateWebcam = function(successCallback) {
     var webcamConstraints = { 'video': true, 'audio': true };
-    tryGetUserMedia(webcamConstraints);
+    tryGetUserMedia(webcamConstraints, successCallback);
   }
 
-  var activateScreenshare = function() {
+  var activateScreenshare = function(successCallback) {
     var screenshareConstraints = {
       'video': {
         mandatory: {
@@ -72,12 +72,19 @@
         }
       }
     }
-    tryGetUserMedia(screenshareConstraints);
+    tryGetUserMedia(screenshareConstraints, successCallback);
   }
 
-  var tryGetUserMedia = function(constraints) {
+  var tryGetUserMedia = function(constraints, successCallback) {
     console.log('Attempting to get user media.');
-    getUserMedia(constraints, onUserMediaSuccess, onUserMediaError);
+    getUserMedia(
+      constraints,
+      function(stream) {
+        onUserMediaSuccess(stream);
+        if (successCallback) successCallback();
+      },
+      onUserMediaError
+    );
   }
 
   var onUserMediaSuccess = function(stream) {
@@ -282,10 +289,11 @@
     }
   }
 
-  var renegotiatePC = function(newStatus, activateNewStreamSource) {
-    activateNewStreamSource();
-    pc.addStream(localStream);
-    offerHandler.sendOffer();
+  var renegotiatePC = function(activateNewStreamSource) {
+    activateNewStreamSource(function() {
+      pc.addStream(localStream);
+      offerHandler.sendOffer();
+    });
   }
 
   // Handles candidate messages, ensures that pc has been established
@@ -399,8 +407,8 @@
       console.log("Flip button data holds invalid value");
       return;
     }
-    pc.removeStream(localStream);
-    renegotiatePC(newStatus, activateNewMediaSource);
+    // pc.removeStream(localStream);
+    renegotiatePC(activateNewMediaSource);
     switchFlipButton(newStatus, label);
   })
 
